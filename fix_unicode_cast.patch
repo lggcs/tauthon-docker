@@ -1,0 +1,38 @@
+Fix Unicode cast
+
+The Tcl_UniChar type is an unsigned integer.  The affected code checks
+if it is safe to treat the Py_UNICODE data directly as a Tcl_UniChar, or
+if new memory needs to be allocated and copied.  This just makes
+explicit the casts that were being made implicitly.
+
+This is a fix for Gentoo Bug #921571.
+
+diff --git a/Modules/_tkinter.c b/Modules/_tkinter.c
+index 0123456789a..0123456789a 100644
+--- a/Modules/_tkinter.c
++++ b/Modules/_tkinter.c
+@@ -1175,7 +1175,7 @@ AsObj(PyObject *value)
+             return NULL;
+         }
+         if (sizeof(Py_UNICODE) == sizeof(Tcl_UniChar))
+-            return Tcl_NewUnicodeObj(inbuf, size);
++            return Tcl_NewUnicodeObj((const Tcl_UniChar *)inbuf, size);
+         allocsize = ((size_t)size) * sizeof(Tcl_UniChar);
+         if (allocsize >= size)
+             outbuf = (Tcl_UniChar*)attemptckalloc(allocsize);
+@@ -1194,13 +1194,13 @@ AsObj(PyObject *value)
+                 ckfree(FREECAST outbuf);
+                 return NULL;
+             }
+-            outbuf[i] = inbuf[i];
++            outbuf[i] = (Tcl_UniChar)inbuf[i];
+         }
+         result = Tcl_NewUnicodeObj(outbuf, size);
+         ckfree(FREECAST outbuf);
+         return result;
+ #else
+-        return Tcl_NewUnicodeObj(inbuf, size);
++        return Tcl_NewUnicodeObj((const Tcl_UniChar *)inbuf, size);
+ #endif
+     }
+ #endif
