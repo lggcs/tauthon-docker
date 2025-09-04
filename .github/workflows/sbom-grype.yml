@@ -1,0 +1,60 @@
+name: Generate SBOM and Scan with Grype
+
+on:
+  push:
+    paths:
+      - 'Dockerfile'
+  workflow_dispatch:
+
+jobs:
+  sbom-and-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (optional for cross-arch)
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image locally
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          tags: sbom-temp:latest
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate SPDX JSON SBOM (Syft)
+        run: |
+          syft sbom-temp:latest -o spdx-json=sbom.spdx.json
+
+      - name: Install Grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Run Grype vulnerability scan (JSON)
+        run: |
+          grype sbom-temp:latest -o json=grype.json || true
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-spdx-json
+          path: sbom.spdx.json
+
+      - name: Upload Grype JSON artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: grype-scan
+          path: grype.json
