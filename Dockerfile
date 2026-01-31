@@ -57,6 +57,9 @@ RUN strip --strip-unneeded $INSTALL_PREFIX/bin/tauthon \
    | awk '{ print $3 }' \
    | sort -u \
    | xargs -r -I '{}' cp -v '{}' /tauthon-runtime/lib/ || true \
+# Copy Tcl/Tk runtime files
+ && cp -a /usr/lib/tcl8.6 /tauthon-runtime/lib/ \
+ && cp -a /usr/lib/tk8.6 /tauthon-runtime/lib/ \
  && mkdir -p /tauthon-runtime/etc/ssl/certs \
  && cp -v /etc/ssl/certs/ca-certificates.crt /tauthon-runtime/etc/ssl/certs/
 
@@ -74,7 +77,10 @@ COPY --from=builder /tauthon-runtime/ /
 
 ENV LANG=C.UTF-8 \
     PYTHONIOENCODING=UTF-8 \
-    PATH="/opt/tauthon/bin"
+    PATH="/opt/tauthon/bin" \
+    TCL_LIBRARY="/lib/tcl8.6" \
+    TK_LIBRARY="/lib/tk8.6"
+
 
 USER 1000:1000
 WORKDIR /home/tauthon
