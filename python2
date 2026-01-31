@@ -1,0 +1,17 @@
+#!/bin/sh
+
+IMAGE="tauthon"
+
+# No arguments → interactive REPL
+if [ $# -eq 0 ]; then
+    exec docker run --rm -it \
+        -e SHELL=/bin/sh \
+        -v "$PWD":"$PWD" -w "$PWD" \
+        "$IMAGE" tauthon
+fi
+
+# Script or command mode
+exec docker run --rm -i \
+    -e SHELL=/bin/sh \
+    -v "$PWD":"$PWD" -w "$PWD" \
+    "$IMAGE" tauthon "$@"
